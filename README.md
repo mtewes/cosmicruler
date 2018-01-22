@@ -1,7 +1,7 @@
 # cosmicruler
 
 
-<img src="./demo.svg">
+<img src="./demo.svg" width="1000">
 
 ## Requirements
 
