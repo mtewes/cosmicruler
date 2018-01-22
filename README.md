@@ -9,9 +9,16 @@
 - astropy
 
 
+## Todo:
+
+- Mention/cite the cosmology 
+- See how to place LaTeX (svg or pdf) ? 
 
 ## Links
 
+- http://docs.astropy.org/en/stable/cosmology/
+- http://docs.astropy.org/en/stable/api/astropy.cosmology.z_at_value.html
+- http://svgwrite.readthedocs.io
 - https://arxiv.org/abs/1303.5961
 
 
