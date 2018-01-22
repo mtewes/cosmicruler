@@ -53,9 +53,9 @@ def drawscale(dwg, x0, y0, l, majticks=None, minticks=None, labels=None, title=N
 	
 	
 	majtickya = y0-0.5
-	majtickyb = y0+6
+	majtickyb = y0+8
 	mintickya = y0-0
-	mintickyb = y0+3
+	mintickyb = y0+4
 	
 	for x in xtrans(majticks):
 		majticksg.add(dwg.line(start=(x, majtickya), end=(x, majtickyb)))
@@ -76,8 +76,8 @@ def drawscale(dwg, x0, y0, l, majticks=None, minticks=None, labels=None, title=N
 	
 	#And we add a title
 	titleg = scaleg.add(dwg.g(id=name+'-title', text_anchor="start",
-		style="font-size:12;font-family:CMU Serif, Arial;stroke:none"))
-	titleg.add(dwg.text(title, insert=(x0, y0-10)))
+		style="font-size:14;font-family:CMU Serif, Arial;stroke:none"))
+	titleg.add(dwg.text(title, insert=(x0, y0-8)))
 	
 	return scaleg
 	
@@ -102,18 +102,18 @@ def makeruler(filepath="demo.svg"):
 	# The relative "p" scale goes from zero to one.
 	# A Redshift scale
 	# z = 2 * p
-	majticks = np.linspace(0, 1, 10+1)
-	minticks = np.linspace(0, 1, 50+1)
-	labels = [(p, "{}".format(2.0*p)) for p in majticks]
+	majticks = np.linspace(0, 1, 20+1)
+	minticks = np.linspace(0, 1, 40+1)
+	labels = [(p, "{}".format(2.0*p)) for p in np.linspace(0, 1, 10+1)]
 	zerooneg = drawscale(dwg, 50, 50, 900, majticks, minticks, labels,
 		title="Redshift", name="redshift")
 	
 	
 	
 	# To test cosmology, Age in Gyr:
-	agelabels = [(x * u.Gyr, "{}".format(x)) for x in [2, 4, 6, 8, 10, 12, 13.7]]
-	agemajticks = np.array([2, 4, 6, 8, 10, 12, 13.7]) * u.Gyr
-	ageminticks = np.arange(2, 13.7, 0.2) * u.Gyr
+	agelabels = [(x * u.Gyr, "{}".format(x)) for x in [4, 6, 8, 10, 12]]
+	agemajticks = np.array([4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) * u.Gyr
+	ageminticks = np.arange(3.5, 13.7, 0.5) * u.Gyr
 	
 	p_agemajticks = [z_at_value(cosmo.age, value)/2.0 for value in agemajticks]
 	p_ageminticks = [z_at_value(cosmo.age, value)/2.0 for value in ageminticks]
@@ -122,6 +122,24 @@ def makeruler(filepath="demo.svg"):
 	ageg = drawscale(dwg, 50, 100, 900, p_agemajticks, p_ageminticks, p_agelabels,
 		title="Age [Gyr]", name="age")
 	
+	
+	# Pixel size in proper kpc
+	#zs = np.linspace(0, 2, 5)
+	#print  cosmo.kpc_proper_per_arcmin(zs).value / 600.0
+	
+	sizelabels = [(x * 600.0 * u.kpc / u.arcmin, "{}".format(x)) for x in [0.2, 0.4, 0.6, 0.8, 0.85]]
+	sizemajticks = np.array([0.2, 0.4, 0.6, 0.8]) * 600.0 * u.kpc / u.arcmin
+	sizeminticks = np.array([0.1, 0.3, 0.5, 0.7, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86]) * 600.0 * u.kpc / u.arcmin
+	
+	#print z_at_value(cosmo.kpc_proper_per_arcmin, 0.6 * 600.0 * u.kpc / u.arcmin, zmax=1.6)
+	#exit()
+	
+	p_sizemajticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0 for value in sizemajticks]
+	p_sizeminticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0 for value in sizeminticks]
+	p_sizelabels = [(z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0, text) for (value, text) in sizelabels]
+	
+	sizeg = drawscale(dwg, 50, 150, 900, p_sizemajticks, p_sizeminticks, p_sizelabels,
+		title="Proper VIS pixel size [kpc]", name="size")
 	
 	
 	#scaleg = drawscale(dwg, 50, 60, 600)

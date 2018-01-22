@@ -12,7 +12,8 @@
 ## Todo:
 
 - Mention/cite the cosmology 
-- See how to place LaTeX (svg or pdf) ? 
+- See how to place LaTeX (svg or pdf) ?
+- Time to launch 
 
 ## Links
 
