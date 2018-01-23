@@ -111,6 +111,7 @@ def makeruler(filepath="demo.svg"):
 	
 	
 	# To test cosmology, Age in Gyr:
+	"""
 	agelabels = [(x * u.Gyr, "{}".format(x)) for x in [4, 6, 8, 10, 12]]
 	agemajticks = np.array([4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) * u.Gyr
 	ageminticks = np.arange(3.5, 13.7, 0.5) * u.Gyr
@@ -121,6 +122,21 @@ def makeruler(filepath="demo.svg"):
 	
 	ageg = drawscale(dwg, 50, 100, 900, p_agemajticks, p_ageminticks, p_agelabels,
 		title="Age [Gyr]", name="age")
+	"""
+	
+	# Lookback time in Gyr:
+	lbtlabels = [(x * u.Gyr, "{}".format(x)) for x in np.arange(1, 10.1, 1)]
+	lbtmajticks = np.array(np.arange(1, 10.1, 1)) * u.Gyr
+	lbtminticks = np.array(np.arange(0.5, 10.1, 0.5)) * u.Gyr
+	p_lbtmajticks = [z_at_value(cosmo.lookback_time, value)/2.0 for value in lbtmajticks]
+	p_lbtminticks = [z_at_value(cosmo.lookback_time, value)/2.0 for value in lbtminticks]
+	p_lbtlabels = [(z_at_value(cosmo.lookback_time, value)/2.0, text) for (value, text) in lbtlabels]
+	
+	p_lbtmajticks.append(0.0)
+	p_lbtlabels.append((0.0, "0"))
+	
+	lbtg = drawscale(dwg, 50, 100, 900, p_lbtmajticks, p_lbtminticks, p_lbtlabels,
+		title="Time to launch [Gyr]", name="lbt")
 	
 	
 	# Pixel size in proper kpc
@@ -139,7 +155,7 @@ def makeruler(filepath="demo.svg"):
 	p_sizelabels = [(z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0, text) for (value, text) in sizelabels]
 	
 	sizeg = drawscale(dwg, 50, 150, 900, p_sizemajticks, p_sizeminticks, p_sizelabels,
-		title="Proper VIS pixel size [kpc]", name="size")
+		title="Transverse proper size seen by a VIS pixel [kpc]", name="size")
 	
 	
 	#scaleg = drawscale(dwg, 50, 60, 600)
