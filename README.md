@@ -11,9 +11,10 @@
 
 ## Todo:
 
+- exp-stretch the z scale
+- Separate scale-computations and drawing
 - Mention/cite the cosmology 
 - See how to place LaTeX (svg or pdf) ?
-- Time to launch 
 
 ## Links
 
