@@ -13,21 +13,48 @@ import numpy as np
 class ZPTrans(object):
 	"""Class defining the transformation between redshift z and the relative position p.
 	"""
-	def __init__(self, zmax=2.0):
+	def __init__(self, zmin=0.0, zmax=2.0, type="lin"):
 		"""
 		zmax : redshift is linear from 0 (p=0) to zmax (p=1)
 		"""
+		self.zmin = zmin
 		self.zmax = zmax
+		self.type = type
 		
+	
+		self.fct = np.sqrt
+		self.invfct = np.square
 
 	def z(self, p):
-		"""redshift z correcponding to p"""
-		return np.asarray(p) * self.zmax
+		"""redshift z corresponding to p"""
+		if self.type == "lin":
+			return np.asarray(p) * (self.zmax - self.zmin) + self.zmin
+		if self.type == "log":
+			return np.exp( np.asarray(p) * (np.log(self.zmax / self.zmin)) + np.log(self.zmin) )
+		if self.type == "test":
+			return self.invfct(np.asarray(p) * (self.fct(self.zmax) - self.fct(self.zmin)) + self.fct(self.zmin))
 	
 	def p(self, z):
 		"""relative position p corresponding to redshift z"""
-		return np.asarray(z) / self.zmax
+		if self.type == "lin":
+			return (np.asarray(z) - self.zmin) / (self.zmax - self.zmin)
+		if self.type == "log":
+			return np.log(np.asarray(z) / self.zmin) / np.log(self.zmax / self.zmin)
+		if self.type == "test":
+			return (self.fct(np.asarray(z)) - self.fct(self.zmin)) / (self.fct(self.zmax) - self.fct(self.zmin))
 
+
+def subticks(a, n=2):
+	"""Returns an array with the positions of subticks placed between the items of a so to divide these intervals into n parts
+	
+	Example: a = [1, 2, 3], n=2 returns [1.5, 2.5]
+	"""
+	output = []
+	asorted = sorted(a)
+	for i in range(len(a)-1):
+		output.extend(np.linspace(asorted[i], asorted[i+1], n+1)[1:-1])
+	return np.array(output)	
+	
 
 
 class Scale(object):
@@ -147,159 +174,213 @@ class Scale(object):
 
 
 
-def demoruler(filepath="demo.svg"):
+def demoruler(filepath="demo.svg", type="lin"):
 
 	# Define a redshift transformation
-	zptrans = ZPTrans()
+	if type == "lin":
+		
+		zptrans = ZPTrans(0.0, 2.0, "lin")
+	
+		# Draw the ruler
+		dwg = svgwrite.Drawing(filepath, profile='full', debug=True)
+		dwg.add(dwg.rect(insert=(10, 10), size=(1000, 200), rx=10, ry=10, fill="none", stroke="black"))
+	
+		# Add a demo scale
+		#scale = Scale()
+		#scale.simpledraw(dwg, 30, 40, 960)
+		spacing = 40
+	
+		# Redshift scale
+		name = "redshift"
+		title = "Redshift"
+		labels = [(value, "{}".format(value)) for value in np.linspace(0.0, 2.0, 20+1)]
+		majticks = [value for (value, text) in labels]
+		medticks = np.linspace(0.0, 2.0, 40+1)
+		minticks = np.linspace(0.0, 2.0, 200+1)
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40, 930)
+	
+		
+		# Lookback time
+		name = "lbt"
+		title = "Time to launch [Gyr]"
+		labels = [(z_at_value(cosmo.lookback_time, value * u.Gyr), "{:.0f}".format(value)) for value in np.arange(1, 10.1, 1)]
+		majticks = [value for (value, text) in labels]
+		medticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in np.arange(0.5, 10.6, 1)]
+		minticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in np.arange(0.1, 10.51, 0.1)]
+		majticks.append(0.0)
+		labels.append((0.0, "0"))
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+spacing, 930)
 
 
-	# Draw the ruler
-	dwg = svgwrite.Drawing(filepath, profile='full', debug=True)
-	dwg.add(dwg.rect(insert=(10, 10), size=(1000, 200), rx=10, ry=10, fill="none", stroke="black"))
-	
-	# Add a demo scale
-	#scale = Scale()
-	#scale.simpledraw(dwg, 30, 40, 960)
-	
-	spacing = 40
-	
-	
-	# Redshift scale
-	name = "redshift"
-	title = "Redshift"
-	labels = [(value, "{}".format(value)) for value in np.linspace(0, 2, 20+1)]
-	majticks = [value for (value, text) in labels]
-	medticks = np.linspace(0, 2, 40+1)
-	minticks = np.linspace(0, 2, 200+1)
-	scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
-	scale.simpledraw(dwg, 50, 40, 930)
+		# Distance modulus
+		name = "distmod"
+		title = "Distance modulus"
+		labels = [(z_at_value(cosmo.distmod, value * u.mag), "{:.0f}".format(value)) for value in np.arange(37.0, 46.1, 1)]
+		majticks = [value for (value, text) in labels]
+		medticks = [z_at_value(cosmo.distmod, value * u.mag) for value in np.arange(37, 46, 0.5)]
+		minticks = [z_at_value(cosmo.distmod, value * u.mag) for value in np.arange(37, 46, 0.1)]
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+2*spacing, 930)
 	
 	
-	# Lookback time
-	name = "lbt"
-	title = "Time to launch [Gyr]"
-	labels = [(z_at_value(cosmo.lookback_time, value * u.Gyr), "{:.0f}".format(value)) for value in np.arange(1, 10.1, 1)]
-	majticks = [value for (value, text) in labels]
-	medticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in np.arange(0.5, 10.6, 1)]
-	minticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in np.arange(0.1, 10.51, 0.1)]
-	majticks.append(0.0)
-	labels.append((0.0, "0"))
-	scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
-	scale.simpledraw(dwg, 50, 40+spacing, 930)
+		# Pixel size in proper kpc
+		name = "size"
+		title = "VIS pixel scale [kpc] (transverse proper size subtending 0.1 arcsec)"
+		f = 600.0 * u.kpc / u.arcmin
+		labels = [(z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6), "{}".format(value)) for value in list(np.arange(0.1, 0.85, 0.1)) + [0.85, 0.86, 0.865]]
+	
+		labels.extend([(z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmin=1.6), "{}".format(value)) for value in [0.865, 0.86]])
+	
+		majticks = [value for (value, text) in labels]
+		medticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6) for value in np.arange(0.1, 0.86, 0.05)]
+		minticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6) for value in np.arange(0.1, 0.86, 0.01)]
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+3*spacing, 930)
+	
 
+	
+	
+	
+	if type == "log":
+		
+	
+		zptrans = ZPTrans(0.01, 2.0, "log")
+	
 
-	# Distance modulus
-	name = "distmod"
-	title = "Distance modulus"
-	labels = [(z_at_value(cosmo.distmod, value * u.mag), "{:.0f}".format(value)) for value in np.arange(37.0, 46.1, 1)]
-	majticks = [value for (value, text) in labels]
-	medticks = [z_at_value(cosmo.distmod, value * u.mag) for value in np.arange(37, 46, 0.5)]
-	minticks = [z_at_value(cosmo.distmod, value * u.mag) for value in np.arange(37, 46, 0.1)]
-	scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
-	scale.simpledraw(dwg, 50, 40+2*spacing, 930)
+		# Draw the ruler
+		dwg = svgwrite.Drawing(filepath, profile='full', debug=True)
+		dwg.add(dwg.rect(insert=(10, 10), size=(1000, 200), rx=10, ry=10, fill="none", stroke="black"))
+	
+		# Add a demo scale
+		#scale = Scale()
+		#scale.simpledraw(dwg, 30, 40, 960)
+	
+		spacing = 40
+	
+		
+		# Redshift scale
+		name = "redshift"
+		title = "Redshift"
+		labels = [(value, "{}".format(value)) for value in [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0]]
+		majticks = [value for (value, text) in labels]
+		medticks = subticks(majticks, 2)
+		minticks = subticks(majticks, 10)
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40, 930)
+	
+		
+		"""
+		# Lookback time
+		name = "lbt"
+		title = "Time to launch [Gyr]"
+		labels = [(z_at_value(cosmo.lookback_time, value * u.Gyr), "{:.0f}".format(value)) for value in np.arange(1, 10.1, 1)]
+		majticks = [value for (value, text) in labels]
+		medticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in np.arange(0.5, 10.6, 1)]
+		minticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in np.arange(0.1, 10.51, 0.1)]
+		#majticks.append(0.0)
+		#labels.append((0.0, "0"))
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+spacing, 930)
+		"""
+
+		"""
+		# Distance modulus
+		name = "distmod"
+		title = "Distance modulus"
+		labels = [(z_at_value(cosmo.distmod, value * u.mag), "{:.0f}".format(value)) for value in np.arange(37.0, 46.1, 1)]
+		majticks = [value for (value, text) in labels]
+		medticks = [z_at_value(cosmo.distmod, value * u.mag) for value in np.arange(37, 46, 0.5)]
+		minticks = [z_at_value(cosmo.distmod, value * u.mag) for value in np.arange(37, 46, 0.1)]
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+2*spacing, 930)
 	
 	
-	# Pixel size in proper kpc
-	name = "size"
-	title = "VIS pixel scale [kpc] (transverse proper size subtending 0.1 arcsec)"
-	f = 600.0 * u.kpc / u.arcmin
-	labels = [(z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6), "{}".format(value)) for value in list(np.arange(0.1, 0.85, 0.1)) + [0.85, 0.86, 0.865]]
+		# Pixel size in proper kpc
+		name = "size"
+		title = "VIS pixel scale [kpc] (transverse proper size subtending 0.1 arcsec)"
+		f = 600.0 * u.kpc / u.arcmin
+		labels = [(z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6), "{}".format(value)) for value in list(np.arange(0.1, 0.85, 0.1)) + [0.85, 0.86, 0.865]]
 	
-	labels.extend([(z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmin=1.6), "{}".format(value)) for value in [0.865, 0.86]])
+		labels.extend([(z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmin=1.6), "{}".format(value)) for value in [0.865, 0.86]])
 	
-	majticks = [value for (value, text) in labels]
-	medticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6) for value in np.arange(0.1, 0.86, 0.05)]
-	minticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6) for value in np.arange(0.1, 0.86, 0.01)]
-	scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
-	scale.simpledraw(dwg, 50, 40+3*spacing, 930)
+		majticks = [value for (value, text) in labels]
+		medticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6) for value in np.arange(0.1, 0.86, 0.05)]
+		minticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value * f, zmax=1.6) for value in np.arange(0.1, 0.86, 0.01)]
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+3*spacing, 930)
+	
+		"""
+	
+	
+	if type == "test":
+		
+	
+		zptrans = ZPTrans(0.0, 2.0, "test")
+	
+
+		# Draw the ruler
+		dwg = svgwrite.Drawing(filepath, profile='full', debug=True)
+		dwg.add(dwg.rect(insert=(10, 10), size=(1000, 200), rx=10, ry=10, fill="none", stroke="black"))
+	
+		# Add a demo scale
+		#scale = Scale()
+		#scale.simpledraw(dwg, 30, 40, 960)
+	
+		spacing = 40
+	
+		
+		# Redshift scale
+		name = "redshift"
+		title = "Redshift"
+		labels = [(value, "{}".format(value)) for value in [0.0, 0.01, 0.02, 0.04, 0.06, 0.08, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 2.0]]
+		majticks = [value for (value, text) in labels]
+		medticks = subticks(majticks, 2)
+		minticks = subticks(majticks, 10)
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40, 930)
+	
+		# Lookback time
+		name = "lbt"
+		title = "Time to launch [Gyr]"
+		sourceticks = np.arange(1, 10.1, 1)
+		labels = [(z_at_value(cosmo.lookback_time, value * u.Gyr), "{:.0f}".format(value)) for value in sourceticks]
+		majticks = [value for (value, text) in labels]
+		majticks.append(0.0)
+		labels.append((0.0, "0"))
+		medticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in subticks(sourceticks, 2)]
+		minticks = [z_at_value(cosmo.lookback_time, value * u.Gyr) for value in subticks(sourceticks, 10)]
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+spacing, 930)
+	
+		# Angular Diam dist
+		name = "angdiam"
+		title = "Angular diameter distance [Gpc]"
+		sourceticks = [0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6]
+		labels = [(z_at_value(cosmo.angular_diameter_distance, value * u.Gpc, zmax=1.6), "{}".format(value)) for value in sourceticks]
+		majticks = [value for (value, text) in labels]
+		majticks.append(0.0)
+		labels.append((0.0, "0"))
+		medticks = [z_at_value(cosmo.angular_diameter_distance, value * u.Gpc, zmax=1.6) for value in subticks(sourceticks, 2)]
+		minticks = [z_at_value(cosmo.angular_diameter_distance, value * u.Gpc, zmax=1.6) for value in subticks(sourceticks, 10)]
+		scale = Scale.fromz(zptrans, name, majticks, medticks, minticks, labels, title)
+		scale.simpledraw(dwg, 50, 40+2*spacing, 930)
+	
+
 	
 	
 	
+	#And we add a title
+	#textg = dwg.add(dwg.g(id="text", text_anchor="end", style="font-size:12;font-family:CMU Serif"))
+	#textg.add(dwg.text(r"\u039B CDM cosmology, Planck 2015", insert=(980, 180)))
 	
 	dwg.save(pretty=True)
-	
-	"""
-	# The relative "p" scale goes from zero to one.
-	# A Redshift scale
-	# z = 2 * p
-	
-	zmajticks = np.linspace(0, zmax, 20+1)
-	zmedticks = np.linspace(0, zmax, 40+1)
-	zminticks = np.linspace(0, zmax, 200+1)
-	
-	majticks = np.linspace(0, 1, 20+1)
-	medticks = np.linspace(0, 1, 40+1)
-	minticks = np.linspace(0, 1, 200+1)
-	labels = [(p, "{}".format(2.0*p)) for p in np.linspace(0, 1, 20+1)]
-	zerooneg = drawscale(dwg, 50, 50, 900, majticks, medticks, minticks, labels,
-		title="Redshift", name="redshift")
-	
-	"""
-	
-	# To test cosmology, Age in Gyr:
-	"""
-	agelabels = [(x * u.Gyr, "{}".format(x)) for x in [4, 6, 8, 10, 12]]
-	agemajticks = np.array([4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) * u.Gyr
-	ageminticks = np.arange(3.5, 13.7, 0.5) * u.Gyr
-	
-	p_agemajticks = [z_at_value(cosmo.age, value)/2.0 for value in agemajticks]
-	p_ageminticks = [z_at_value(cosmo.age, value)/2.0 for value in ageminticks]
-	p_agelabels = [(z_at_value(cosmo.age, value)/2.0, text) for (value, text) in agelabels]
-	
-	ageg = drawscale(dwg, 50, 100, 900, p_agemajticks, p_ageminticks, p_agelabels,
-		title="Age [Gyr]", name="age")
-	"""
-	
-	"""
-	# Lookback time in Gyr:
-	lbtlabels = [(x * u.Gyr, "{}".format(x)) for x in np.arange(1, 10.1, 1)]
-	lbtmajticks = np.array(np.arange(1, 10.1, 1)) * u.Gyr
-	lbtminticks = np.array(np.arange(0.5, 10.1, 0.5)) * u.Gyr
-	p_lbtmajticks = [z_at_value(cosmo.lookback_time, value)/2.0 for value in lbtmajticks]
-	p_lbtminticks = [z_at_value(cosmo.lookback_time, value)/2.0 for value in lbtminticks]
-	p_lbtlabels = [(z_at_value(cosmo.lookback_time, value)/2.0, text) for (value, text) in lbtlabels]
-	
-	p_lbtmedticks = []
-	
-	p_lbtmajticks.append(0.0)
-	p_lbtlabels.append((0.0, "0"))
-	
-	lbtg = drawscale(dwg, 50, 100, 900, p_lbtmajticks, p_lbtmedticks, p_lbtminticks, p_lbtlabels,
-		title="Time to launch [Gyr]", name="lbt")
-	
-	
-	# Pixel size in proper kpc
-	#zs = np.linspace(0, 2, 5)
-	#print  cosmo.kpc_proper_per_arcmin(zs).value / 600.0
-	
-	sizelabels = [(x * 600.0 * u.kpc / u.arcmin, "{}".format(x)) for x in [0.2, 0.4, 0.6, 0.8, 0.85]]
-	sizemajticks = np.array([0.2, 0.4, 0.6, 0.8]) * 600.0 * u.kpc / u.arcmin
-	sizeminticks = np.array([0.1, 0.3, 0.5, 0.7, 0.81, 0.82, 0.83, 0.84, 0.85, 0.86]) * 600.0 * u.kpc / u.arcmin
-	
-	#print z_at_value(cosmo.kpc_proper_per_arcmin, 0.6 * 600.0 * u.kpc / u.arcmin, zmax=1.6)
-	#exit()
-	
-	p_sizemajticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0 for value in sizemajticks]
-	p_sizeminticks = [z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0 for value in sizeminticks]
-	p_sizelabels = [(z_at_value(cosmo.kpc_proper_per_arcmin, value, zmax=1.6)/2.0, text) for (value, text) in sizelabels]
-	
-	p_sizemedticks = []
-	
-	sizeg = drawscale(dwg, 50, 150, 900, p_sizemajticks, p_sizemedticks, p_sizeminticks, p_sizelabels,
-		title="VIS pixel scale [kpc] (transverse proper size subtending 0.1 arcsec)", name="size")
-	
-	
-	#scaleg = drawscale(dwg, 50, 60, 600)
-	#scaleg.rotate(15, center=(500, 50))
-	"""
-	
-	#dwg.add(dwg.text('Test', insert=(0, 0.2)))
-	
 	
 	
 
 
 if __name__ == '__main__':
-	demoruler()
+	demoruler(type="test")
     
     
