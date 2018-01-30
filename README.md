@@ -11,7 +11,8 @@
 
 ## Todo:
 
-- exp-stretch the z scale
+- Find solution for the "0.0"-inversion problem and peak angular diam dist
+
 - Separate scale-computations and drawing
 - Mention/cite the cosmology 
 - See how to place LaTeX (svg or pdf) ?
