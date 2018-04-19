@@ -158,7 +158,7 @@ scales.append(cosmicruler.Scale.fromz(zptrans, name, majticks, medticks, mintick
 
 
 name = "visgals"
-title = "Average number of galaxies per square arcminute with VIS < 24.5 to this redshift (based on the Euclid Flagship mock galaxy catalogue)"
+title = "Cumulated number of galaxies per square arcmin with VIS < 24.5 (based on the Euclid Flagship mock galaxy catalogue)"
 cat = astropy.table.Table.read("2562.fits")
 cat = cat[cat["euclid_vis"] < 24.5]
 subsamplefactor = (1./256.) * 0.1
@@ -170,6 +170,24 @@ medticks = []
 minticks = cosmicruler.subticks([0.01, 0.1, 1.0, 10.0], 9)
 scale = galcounts.scale_counts_to_z(cat, catfactor, zptrans, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
 scales.append(scale)
+
+
+
+name = "nispsgals"
+title = "Cumulated number of galaxies per square arcmin with an H-alpha flux above NISP spectroscopic sensitivity (based on the Euclid Flagship mock galaxy catalogue)"
+cat = astropy.table.Table.read("2580.fits")
+cat["avg_halpha_ext"] = 0.5 * ( 10.0**(cat["logf_halpha_model1_ext"]) +  10.0**(cat["logf_halpha_model3_ext"]))
+cat = cat[cat["avg_halpha_ext"] > 2.e-16]
+subsamplefactor = (1./256.) * 0.1
+overal_square_degrees = 5000.0
+catfactor = (overal_square_degrees * 3600) * subsamplefactor
+labels = [(value, "{}".format(value)) for value in [0.01, 0.1, 1.0, 2]]
+majticks = [value for (value, text) in labels]
+medticks = []
+minticks = []#cosmicruler.subticks([0.01, 0.1, 1.0, 10.0], 9)
+scale = galcounts.scale_counts_to_z(cat, catfactor, zptrans, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
+scales.append(scale)
+
 
 
 
