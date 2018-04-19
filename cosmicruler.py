@@ -31,7 +31,7 @@ class ZPTrans(object):
 			return np.asarray(p) * (self.zmax - self.zmin) + self.zmin
 		if self.type == "log":
 			return np.exp( np.asarray(p) * (np.log(self.zmax / self.zmin)) + np.log(self.zmin) )
-		if self.type == "test":
+		if self.type == "sqrt":
 			return self.invfct(np.asarray(p) * (self.fct(self.zmax) - self.fct(self.zmin)) + self.fct(self.zmin))
 	
 	def p(self, z):
@@ -40,7 +40,7 @@ class ZPTrans(object):
 			return (np.asarray(z) - self.zmin) / (self.zmax - self.zmin)
 		if self.type == "log":
 			return np.log(np.asarray(z) / self.zmin) / np.log(self.zmax / self.zmin)
-		if self.type == "test":
+		if self.type == "sqrt":
 			return (self.fct(np.asarray(z)) - self.fct(self.zmin)) / (self.fct(self.zmax) - self.fct(self.zmin))
 
 
@@ -60,7 +60,7 @@ def subticks(a, n=2):
 class Scale(object):
 	"""Object to group all the information needed to draw a scale"""
 	
-	def __init__(self, name="demo", majticks=[0, 1], medticks=[0.5], minticks=[0.25, 0.75], labels=[(0.5, "Test")], title="Demo scale"):
+	def __init__(self, name="demo", majticks=[0, 1], medticks=[0.5], minticks=[0.25, 0.75], labels=[(0.5, "Test")], title="Demo scale", extras=None):
 		"""
 		The tick and label position are given in relative positions "p", from 0 to 1.
 		If you have positions in redshift, use the fromz() factory function below instead of this init!
@@ -72,6 +72,7 @@ class Scale(object):
 		labels : array of tuples (p value, "text")
 		title : to be written as description on the scale
 	
+		extras is a dict that can hold specific items that need to be drawn, such as "peaks" etc.
 	
 		"""
 		
@@ -81,10 +82,11 @@ class Scale(object):
 		self.minticks = minticks
 		self.labels = labels
 		self.title = title
+		self.extras = extras
 		
 	
 	@classmethod
-	def fromz(cls, zptrans, name="demo", majticks=[0, 1], medticks=[0.5], minticks=[0.25, 0.75], labels=[(0.5, "Test")], title="Demo scale"):
+	def fromz(cls, zptrans, name="demo", majticks=[0, 1], medticks=[0.5], minticks=[0.25, 0.75], labels=[(0.5, "Test")], title="Demo scale", extras=None):
 		"""
 		Factory function to construct a Scale from information given in redshift
 		"""
@@ -94,7 +96,15 @@ class Scale(object):
 		p_minticks = [zptrans.p(value) for value in minticks]
 		p_labels = [(zptrans.p(value), text) for (value, text) in labels]
 		
-		return cls(name, p_majticks, p_medticks, p_minticks, p_labels, title)
+		if extras is not None:
+			p_extras = extras.copy()
+			if "peak" in extras:
+				p_extras["peak"] = (zptrans.p(extras["peak"][0]), extras["peak"][1])
+			
+		else:
+			p_extras = None
+		
+		return cls(name, p_majticks, p_medticks, p_minticks, p_labels, title, p_extras)
 		
 	
 		
@@ -131,13 +141,15 @@ class Scale(object):
 		minticksg = scaleg.add(dwg.g(id=self.name+'-minticks'))
 		minticksg.stroke('black', width=lw)
 	
+		majtickl = 8.0
+	
 		# Drawing the ticks
 		majtickya = y0-lw/2.0
-		majtickyb = y0+8
+		majtickyb = y0+majtickl
 		medtickya = y0-lw/2.0
-		medtickyb = y0+6
+		medtickyb = y0+0.75*majtickl
 		mintickya = y0-lw/2.0
-		mintickyb = y0+4
+		mintickyb = y0+0.5*majtickl
 	
 		for x in xtrans(self.majticks):
 			majticksg.add(dwg.line(start=(x, majtickya), end=(x, majtickyb)))
@@ -155,11 +167,21 @@ class Scale(object):
 				style="font-size:10;font-family:Helvetica Neue"
 				)
 			)
-	
+			
 		# Drawing the labels
 		for (p, text) in self.labels:
 			x = xtrans(p)
 			labelsg.add(dwg.text(text, insert=(x, y0+18)))
+	
+		# Drawing the extras, if present
+		if self.extras is not None:
+			if "peak" in self.extras:
+				(peakp, peaklabel) = self.extras["peak"]
+				x = xtrans(peakp)
+				labelsg.add(dwg.text(peaklabel, insert=(x, y0+18)))
+				majticksg.add(dwg.line(start=(x, majtickya), end=(x-majtickl, majtickyb)))
+				majticksg.add(dwg.line(start=(x, majtickya), end=(x+majtickl, majtickyb)))
+				
 	
 		#And we add a title
 		titleg = scaleg.add(dwg.g(id=self.name+'-title', text_anchor="start",
@@ -314,10 +336,10 @@ def demoruler(filepath="demo.svg", type="lin"):
 		"""
 	
 	
-	if type == "test":
+	if type == "sqrt":
 		
 	
-		zptrans = ZPTrans(0.0, 2.0, "test")
+		zptrans = ZPTrans(0.0, 2.0, "sqrt")
 	
 
 		# Draw the ruler
@@ -381,6 +403,6 @@ def demoruler(filepath="demo.svg", type="lin"):
 
 
 if __name__ == '__main__':
-	demoruler(type="test")
+	demoruler(type="sqrt")
     
     
