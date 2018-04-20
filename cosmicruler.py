@@ -9,6 +9,8 @@ from astropy.cosmology import Planck15 as cosmo
 from astropy.cosmology import z_at_value
 import numpy as np
 
+import logging
+
 
 class ZPTrans(object):
 	"""Class defining the transformation between redshift z and the relative position p.
@@ -45,7 +47,7 @@ class ZPTrans(object):
 
 
 def subticks(a, n=2):
-	"""Returns an array with the positions of subticks placed between the items of a so to divide these intervals into n parts
+	"""Returns a list with the positions of subticks placed between the items of a so to divide these intervals into n parts
 	
 	Example: a = [1, 2, 3], n=2 returns [1.5, 2.5]
 	"""
@@ -53,16 +55,92 @@ def subticks(a, n=2):
 	asorted = sorted(a)
 	for i in range(len(a)-1):
 		output.extend(np.linspace(asorted[i], asorted[i+1], n+1)[1:-1])
-	return np.array(output)	
+	#return np.array(output)	
+	return output
 	
+
+def autosubtickmaker(a, majticks, medticks, minticks, type="lin2", transf=None):
+	"""For each interval between the major ticks in array a, I append medticks and minticks to the given lists, according to type.
+	
+	I also add elements of a to the majticks
+	
+	The function pays attention not to place subticks on top of each other or on positions of a.
+	"""
+	
+	
+	if transf is None: # We set it to identity
+		transf = lambda x: x
+	
+	asorted = sorted(a)
+	
+	for aitem in asorted:
+		try:
+			majticks.append(transf(aitem))
+		except:
+			logging.warning("transf failed on a majtick, but no prob")
+			pass
+	
+	for i in range(len(asorted)-1):
+		
+		if type is "lin2" or type is "lin210": # medtick at half step
+			medticks.append(transf(0.5 * (asorted[i] +  asorted[i+1])))
+			
+		if type is "lin210": # minticks at tenth of step
+			for s in [0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9]:
+				minticks.append(transf(asorted[i] + s * (asorted[i+1] - asorted[i])))
+
+		if type is "lin5" or type is "lin210": # minticks at fifths of step
+			for s in [0.2, 0.4, 0.6, 0.8]:
+				medticks.append(transf(asorted[i] + s * (asorted[i+1] - asorted[i])))
+
+		if type is "log10": # minticks at 8 positions equispaced between the two (not the extrema, so 2, 3, 4, 5, 6, 7, 8, 9)
+			if not np.isclose(asorted[i+1], 10*asorted[i]):
+				raise RuntimeError("Fishy log auto subticks")
+			for s in np.linspace(2.0, 9.0, 8):		
+				minticks.append(transf(s * asorted[i]))
+		
+
+def remove_duplicates(l):
+	"""
+	
+	"""
+	if len(l) < 2:
+		return l
+	s = sorted(l)
+	out = []
+	out.append(s[0])
+	for item in s[1:]:
+		if not np.isclose(item, out[-1]):
+			out.append(item)
+	return out
+
+def remove_duplicate_labels(labels):
+	"""
+	Similar, but for (pos, label) tuples
+	We can't use the label text for identifactino, as they might appear several times on non-monotonous scales...
+	"""
+	out = []
+	out.append(labels[0])
+	for item in labels[1:]:
+		isnew = True
+		for outitem in out:
+			if np.isclose(item[0], outitem[0]):
+				isnew = False
+		if isnew:
+			out.append(item)
+	return out
+
 
 
 class Scale(object):
 	"""Object to group all the information needed to draw a scale"""
 	
-	def __init__(self, name="demo", majticks=[0, 1], medticks=[0.5], minticks=[0.25, 0.75], labels=[(0.5, "Test")], title="Demo scale", extras=None):
+	def __init__(self, name="scale", majticks=None, medticks=None, minticks=None, labels=None, title="Scale", extras=None):
 		"""
-		The tick and label position are given in relative positions "p", from 0 to 1.
+		Object to store what is needed to draw a scale.
+		Before drawing, all positions should be given in terms of relative positions "p", from 0 to 1.
+		But you can first create the object using redshift z positions, and then call the method zptransform.
+		
 		If you have positions in redshift, use the fromz() factory function below instead of this init!
 	
 		name : is used internally for ids
@@ -84,38 +162,94 @@ class Scale(object):
 		self.title = title
 		self.extras = extras
 		
+		if self.majticks is None:
+			self.majticks = []
+		if self.medticks is None:
+			self.medticks = []
+		if self.minticks is None:
+			self.minticks = []
+		if self.labels is None:
+			self.labels = []
+	
+	
+	def __str__(self):
+		return """
+		Scale '{self.title}'
+		majticks: {self.majticks}
+		medticks: {self.medticks}
+		minticks: {self.minticks}
+		labels: {self.labels}
+		""".format(self=self)
+	
+	
+	def apply_zptrans(self, zptrans):
+		"""
+		Transforms all "positions" from z to p
+		"""
+		self.majticks = [zptrans.p(value) for value in self.majticks]
+		self.medticks = [zptrans.p(value) for value in self.medticks]
+		self.minticks = [zptrans.p(value) for value in self.minticks]
+		self.labels = [(zptrans.p(value), text) for (value, text) in self.labels]
+		
+		if self.extras is not None:
+			if "peak" in self.extras:
+				self.extras["peak"] = (zptrans.p(self.extras["peak"][0]), self.extras["peak"][1])
+			
+	
+	def addautosubticks(self, a, type, transf=None):
+		autosubtickmaker(a, self.majticks, self.medticks, self.minticks, type=type, transf=transf)
+		
+	
 	
 	@classmethod
-	def fromz(cls, zptrans, name="demo", majticks=[0, 1], medticks=[0.5], minticks=[0.25, 0.75], labels=[(0.5, "Test")], title="Demo scale", extras=None):
+	def fromz(cls, zptrans, *args, **kwargs):
 		"""
 		Factory function to construct a Scale from information given in redshift
 		"""
 		
-		p_majticks = [zptrans.p(value) for value in majticks]
-		p_medticks = [zptrans.p(value) for value in medticks]
-		p_minticks = [zptrans.p(value) for value in minticks]
-		p_labels = [(zptrans.p(value), text) for (value, text) in labels]
+		scale = cls(*args, **kwargs)
+		scale.apply_zptrans(zptrans)
+		return scale
 		
-		if extras is not None:
-			p_extras = extras.copy()
-			if "peak" in extras:
-				p_extras["peak"] = (zptrans.p(extras["peak"][0]), extras["peak"][1])
-			
-		else:
-			p_extras = None
+	
+	def clean(self):
+		"""
+		Removes duplicates
+		"""
+		self.majticks = remove_duplicates(self.majticks)
 		
-		return cls(name, p_majticks, p_medticks, p_minticks, p_labels, title, p_extras)
+		self.labels = remove_duplicate_labels(self.labels)
+		
+		
 		
 	
 		
-	def simpledraw(self, dwg, x0, y0, l):
+	def simpledraw(self, dwg, x0, y0, l, 
+		lw=0.5, tickl=8.0, 
+		labelspace=3.0, titlespace=5.0, labelstyle=None, titlestyle=None,
+		rotatelabels=False, switchside=False, ticktype=1,
+		textshiftx=0.0, textshifty=0.0):
 		"""Draws the scale onto a svgwrite.Drawing dwg
 		
 		x0 : svg x position of p=0
 		y0 : svg y position of p=0
 		l : svg lenght in x direction
 		
+		textxshift and textyshift are there to "hack" the text positions in case the
+		"text alignment" is not understood by your SVG reader (e.g., Inkscape)
+		
+		
 		"""
+		
+		self.clean()
+		
+		
+		if labelstyle is None:
+			labelstyle = "font-size:10;font-family:Helvetica Neue"
+			
+		if titlestyle is None:
+			titlestyle = "font-size:12;font-family:CMU Serif"
+		
 		
 		def xtrans(p):
 			"""Transforms p into the svg position x
@@ -130,8 +264,7 @@ class Scale(object):
 	
 	
 		# Drawing the main line
-		lw = 0.5
-		scaleg.add(dwg.line(start=(x0, y0), end=(x0+l, y0), style="stroke:black;stroke-width:{}".format(lw)))
+		scaleg.add(dwg.line(start=(x0-lw/2.0, y0), end=(x0+l+lw/2.0, y0), style="stroke:black;stroke-width:{}".format(lw)))
 	
 		# Groups for ticks
 		majticksg = scaleg.add(dwg.g(id=self.name+'-majticks'))
@@ -141,15 +274,31 @@ class Scale(object):
 		minticksg = scaleg.add(dwg.g(id=self.name+'-minticks'))
 		minticksg.stroke('black', width=lw)
 	
-		majtickl = 8.0
 	
 		# Drawing the ticks
-		majtickya = y0-lw/2.0
-		majtickyb = y0+majtickl
-		medtickya = y0-lw/2.0
-		medtickyb = y0+0.75*majtickl
-		mintickya = y0-lw/2.0
-		mintickyb = y0+0.5*majtickl
+		if switchside:
+			signedtickl = - tickl
+		else:
+			signedtickl = tickl
+		
+		if ticktype is 1:
+			majtickya = y0-lw/2.0
+			majtickyb = y0+signedtickl
+			medtickya = y0-lw/2.0
+			medtickyb = y0+0.75*signedtickl
+			mintickya = y0-lw/2.0
+			mintickyb = y0+0.5*signedtickl
+		elif ticktype is 2:
+			majtickya = y0-lw/2.0
+			majtickyb = y0+signedtickl
+			medtickya = y0-lw/2.0
+			medtickyb = y0+0.666*signedtickl
+			mintickya = y0-lw/2.0
+			mintickyb = y0+0.333*signedtickl
+			
+		else:
+			raise RuntimeError("Unknown ticktype")
+	
 	
 		for x in xtrans(self.majticks):
 			majticksg.add(dwg.line(start=(x, majtickya), end=(x, majtickyb)))
@@ -163,30 +312,85 @@ class Scale(object):
 		# CMU Serif, Arial
 		labelsg = scaleg.add(
 			dwg.g(id=self.name+'-labels',
-				text_anchor="middle",
-				style="font-size:10;font-family:Helvetica Neue"
+				style=labelstyle
 				)
 			)
 			
 		# Drawing the labels
 		for (p, text) in self.labels:
-			x = xtrans(p)
-			labelsg.add(dwg.text(text, insert=(x, y0+18)))
+			x = xtrans(p) + textshiftx
+			if switchside:
+				y = y0-tickl-labelspace
+			else:
+				y = y0+tickl+labelspace
+				
+			if rotatelabels:
+				if switchside:
+					text_anchor="start"
+				else:
+					text_anchor="end"
+			
+				labelsg.add(
+					dwg.text(text, insert=(x, y),
+						text_anchor=text_anchor, alignment_baseline="central",
+						transform="rotate(-90, {}, {})".format(x, y)
+						)
+					)
+			else:
+				labelsg.add(
+					dwg.text(text, insert=(x, y), 
+						text_anchor="middle", alignment_baseline="hanging")
+					)
+
 	
 		# Drawing the extras, if present
 		if self.extras is not None:
 			if "peak" in self.extras:
 				(peakp, peaklabel) = self.extras["peak"]
+				
 				x = xtrans(peakp)
-				labelsg.add(dwg.text(peaklabel, insert=(x, y0+18)))
-				majticksg.add(dwg.line(start=(x, majtickya), end=(x-majtickl, majtickyb)))
-				majticksg.add(dwg.line(start=(x, majtickya), end=(x+majtickl, majtickyb)))
+				
+				majticksg.add(dwg.line(start=(x, majtickya), end=(x-tickl, majtickyb)))
+				majticksg.add(dwg.line(start=(x, majtickya), end=(x+tickl, majtickyb)))
+				
+				xtxt = x + textshiftx
+				
+				if switchside:
+					y = y0-tickl-labelspace
+				else:
+					y = y0+tickl+labelspace
+				
+				if rotatelabels:
+					if switchside:
+						text_anchor="start"
+					else:
+						text_anchor="end"
+			
+					labelsg.add(
+						dwg.text(peaklabel, insert=(xtxt, y),
+							text_anchor=text_anchor, alignment_baseline="central",
+							transform="rotate(-90, {}, {})".format(xtxt, y)
+							)
+						)
+				else:
+					labelsg.add(
+						dwg.text(peaklabel, insert=(xtxt, y), 
+							text_anchor="middle", alignment_baseline="hanging")
+						)
+
+				
 				
 	
 		#And we add a title
+		if switchside:
+			y = y0+titlespace + textshifty
+			alignment_baseline="hanging"
+		else:
+			y = y0-titlespace + textshifty
+			alignment_baseline="auto"
 		titleg = scaleg.add(dwg.g(id=self.name+'-title', text_anchor="start",
-			style="font-size:12;font-family:CMU Serif"))
-		titleg.add(dwg.text(self.title, insert=(x0, y0-5)))
+			style=titlestyle))
+		titleg.add(dwg.text(self.title, insert=(x0, y), alignment_baseline=alignment_baseline))
 	
 		return scaleg
 	
@@ -403,6 +607,21 @@ def demoruler(filepath="demo.svg", type="lin"):
 
 
 if __name__ == '__main__':
-	demoruler(type="sqrt")
+	
+	
+	majticks = []
+	medticks = []
+	minticks = []
+	
+	autosubtickmaker([1, 2, 3], majticks, medticks, minticks, type="lin")
+	autosubtickmaker([3, 4], majticks, medticks, minticks, type="linmin")
+	autosubtickmaker([10, 100], majticks, medticks, minticks, type="log")
+	
+	print majticks
+	print medticks
+	print minticks
+	
+	
+	#demoruler(type="sqrt")
     
     

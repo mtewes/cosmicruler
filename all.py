@@ -13,7 +13,7 @@ import scipy.optimize
 
 
 """
-A script for the glass
+A longer demo script with all kinds of rulers
 """
 
 
