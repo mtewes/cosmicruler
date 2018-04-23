@@ -109,6 +109,50 @@ scale.addautosubticks(sourceticks, None, transf2)
 scales.append(scale)
 
 
+"""
+scale = cosmicruler.Scale(name="visgals", title="Cumulated number of galaxies per square arcmin with VIS < 24.5")
+cat = astropy.table.Table.read("2562.fits")
+cat = cat[cat["euclid_vis"] < 24.5]
+subsamplefactor = (1./256.) * 0.1
+overal_square_degrees = 5000.0
+catfactor = (overal_square_degrees * 3600) * subsamplefactor
+scale.labels.extend([(value, "{}".format(value)) for value in [0.01, 0.1, 1.0, 10.0, 15.0, 20.0, 25.0, 30.0]])
+scale.addautosubticks([0.01, 0.1, 1.0, 10.0], "log10", transf1)
+scale.addautosubticks([10.0, 15.0, 20.0, 25.0, 30.0], None, transf1)
+scales.append(scale)
+"""
+
+name = "visgals"
+title = "Cumulated number of galaxies per arcmin2 with VIS < 24.5"
+cat = astropy.table.Table.read("2562.fits")
+cat = cat[cat["euclid_vis"] < 24.5]
+subsamplefactor = (1./256.) * 0.1
+overal_square_degrees = 5000.0
+catfactor = (overal_square_degrees * 3600) * subsamplefactor
+labels = [(value, "{}".format(value)) for value in [0.01, 0.1, 1.0, 10.0, 15.0, 20.0, 25.0, 30.0]]
+majticks = [value for (value, text) in labels]
+medticks = cosmicruler.subticks([10.0, 15.0, 20.0, 25.0, 30.0], 2)
+minticks = cosmicruler.subticks([0.1, 1.0, 10.0], 9)
+scale = galcounts.scale_counts_to_z(cat, catfactor, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
+scales.append(scale)
+
+
+
+name = "nispsgals"
+title = "Cumulated galaxies per deg2 with Ha > NISP spectroscopic sensitivity"
+cat = astropy.table.Table.read("2580.fits")
+cat["avg_halpha_ext"] = 0.5 * ( 10.0**(cat["logf_halpha_model1_ext"]) +  10.0**(cat["logf_halpha_model3_ext"]))
+cat = cat[cat["avg_halpha_ext"] > 2.e-16]
+subsamplefactor = (1./256.) * 0.1
+overal_square_degrees = 5000.0
+catfactor = (overal_square_degrees) * subsamplefactor
+labels = [(value, "{}".format(value)) for value in [10, 100, 1000, 5000, 6000, 7000, 8000]]
+majticks = [value for (value, text) in labels]
+medticks = cosmicruler.subticks([1000, 5000], 4)
+minticks = cosmicruler.subticks([100, 1000], 9)
+scale = galcounts.scale_counts_to_z(cat, catfactor, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
+scales.append(scale)
+
 
 
 

@@ -4,7 +4,7 @@ import astropy.table
 
 
 
-def scale_counts_to_z(cat, catfactor=1.0, zptrans=None, 
+def scale_counts_to_z(cat, catfactor=1.0, 
 	majticks=[0.1, 1.0, 10.0], medticks=[], minticks=[], labels=[(1.0, "1.0")],
 	name="counts", title="Cumulated counts to redshift", z_name="true_redshift_gal"):
 	"""
@@ -22,8 +22,6 @@ def scale_counts_to_z(cat, catfactor=1.0, zptrans=None,
 	
 	"""
 
-	if zptrans is None:
-		zptrans = cosmicruler.ZPTrans()
 
 	cat.sort(z_name)
 
@@ -59,7 +57,7 @@ def scale_counts_to_z(cat, catfactor=1.0, zptrans=None,
 	labelzs = find_redshifts(labelcounts)
 	labels = [(z, text) for (z, (value, text)) in zip(labelzs, labels)]
 
-	outscale = cosmicruler.Scale.fromz(zptrans, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
+	outscale = cosmicruler.Scale(name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
 	
 	return outscale
 

@@ -350,8 +350,8 @@ class Scale(object):
 				
 				x = xtrans(peakp)
 				
-				majticksg.add(dwg.line(start=(x, majtickya), end=(x-tickl, majtickyb)))
-				majticksg.add(dwg.line(start=(x, majtickya), end=(x+tickl, majtickyb)))
+				majticksg.add(dwg.line(start=(x, majtickya), end=(x-0.66*tickl, majtickyb)))
+				majticksg.add(dwg.line(start=(x, majtickya), end=(x+0.66*tickl, majtickyb)))
 				
 				xtxt = x + textshiftx
 				
