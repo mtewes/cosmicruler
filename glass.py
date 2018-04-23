@@ -22,7 +22,7 @@ scales = []
 
 
 scale = cosmicruler.Scale(name="redshift", title="Redshift")
-labelpos = [0.0, 0.01, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0]
+labelpos = [0, 0.01, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.5, 2.0]
 scale.labels.extend([(value, "{}".format(value)) for value in labelpos])
 scale.addautosubticks([0.0, 0.01], "lin2")
 scale.addautosubticks([0.01, 0.1], "log10")
@@ -62,7 +62,7 @@ zpeak = scipy.optimize.fmin(lambda z: -cosmo.angular_diameter_distance(z).value,
 valpeak = cosmo.angular_diameter_distance(zpeak)
 labelpeak = "{:.3f}".format(valpeak.value/1000.0)
 scale.extras = {"peak":(zpeak, labelpeak)}
-scale.labels.append((0.0, "0.0"))
+scale.labels.append((0.0, "0"))
 scale.majticks.append(0.0)
 transf1 = lambda x: z_at_value(cosmo.angular_diameter_distance, x * u.Gpc, zmax=zpeak) # left of peak
 transf2 = lambda x: z_at_value(cosmo.angular_diameter_distance, x * u.Gpc, zmin=zpeak) # right of peak
@@ -71,7 +71,7 @@ transf2 = lambda x: z_at_value(cosmo.angular_diameter_distance, x * u.Gpc, zmin=
 #scale.addautosubticks(sourceticks, None, transf1)
 scale.addautosubticks([0.0, 0.1], "lin5", transf1)
 scale.labels.extend([(transf1(value), "{}".format(value)) for value in [0.1]])
-sourceticks = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6]
+sourceticks = [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6]
 scale.labels.extend([(transf1(value), "{}".format(value)) for value in sourceticks])
 scale.addautosubticks(sourceticks, "lin2", transf1)
 sourceticks = [1.7, 1.75, 1.78]
@@ -129,9 +129,9 @@ cat = cat[cat["euclid_vis"] < 24.5]
 subsamplefactor = (1./256.) * 0.1
 overal_square_degrees = 5000.0
 catfactor = (overal_square_degrees * 3600) * subsamplefactor
-labels = [(value, "{}".format(value)) for value in [0.01, 0.1, 1.0, 10.0, 15.0, 20.0, 25.0, 30.0]]
+labels = [(value, "{}".format(value)) for value in [0.01, 0.1, 1, 10, 15, 20, 25, 30]]
 majticks = [value for (value, text) in labels]
-medticks = cosmicruler.subticks([10.0, 15.0, 20.0, 25.0, 30.0], 2)
+medticks = cosmicruler.subticks([10, 15, 20, 25, 30], 2)
 minticks = cosmicruler.subticks([0.1, 1.0, 10.0], 9)
 scale = galcounts.scale_counts_to_z(cat, catfactor, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
 scales.append(scale)
@@ -146,9 +146,13 @@ cat = cat[cat["avg_halpha_ext"] > 2.e-16]
 subsamplefactor = (1./256.) * 0.1
 overal_square_degrees = 5000.0
 catfactor = (overal_square_degrees) * subsamplefactor
-labels = [(value, "{}".format(value)) for value in [10, 100, 1000, 5000, 6000, 7000, 8000]]
+#labels = [(value, "{}".format(value)) for value in [10, 100, 1000, 5000, 6000, 7000, 8000, 8500]]
+#majticks = [value for (value, text) in labels]
+#medticks = cosmicruler.subticks([1000, 5000], 4)
+#minticks = cosmicruler.subticks([100, 1000], 9)
+labels = [(value, "{}".format(value)) for value in [10, 100, 1000, 2000, 4000, 6000, 8000, 8500]]
 majticks = [value for (value, text) in labels]
-medticks = cosmicruler.subticks([1000, 5000], 4)
+medticks = [1500, 3000, 5000, 7000]
 minticks = cosmicruler.subticks([100, 1000], 9)
 scale = galcounts.scale_counts_to_z(cat, catfactor, name=name, majticks=majticks, medticks=medticks, minticks=minticks, labels=labels, title=title)
 scales.append(scale)
