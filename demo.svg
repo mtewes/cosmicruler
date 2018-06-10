@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <svg baseProfile="full" height="100%" version="1.1" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:ev="http://www.w3.org/2001/xml-events" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs/>
-  <rect fill="none" height="200" rx="10" ry="10" stroke="black" width="1000" x="10" y="10"/>
+  <rect fill="none" height="160" rx="10" ry="10" stroke="black" width="1000" x="10" y="10"/>
   <g id="redshift-scale">
     <line style="stroke:black;stroke-width:0.5" x1="49.75" x2="980.25" y1="40" y2="40"/>
     <g id="redshift-majticks" stroke="black" stroke-width="0.5">

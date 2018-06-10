@@ -407,7 +407,7 @@ def demoruler(filepath="demo.svg"):
 
 		# Draw the ruler
 		dwg = svgwrite.Drawing(filepath, profile='full', debug=True)
-		dwg.add(dwg.rect(insert=(10, 10), size=(1000, 200), rx=10, ry=10, fill="none", stroke="black"))
+		dwg.add(dwg.rect(insert=(10, 10), size=(1000, 160), rx=10, ry=10, fill="none", stroke="black"))
 	
 		# Add a demo scale
 		#scale = Scale()
