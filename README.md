@@ -7,7 +7,8 @@
 ## About
 
 Run ``cosmicruler.py`` to get the example output shown above.
-For a more flexible use of the interface, see ``glass/glass.py``
+The code for this example is a bit outdated.
+For a better use of the available features, see ``glass/glass.py``.
 
 
 ## Requirements
