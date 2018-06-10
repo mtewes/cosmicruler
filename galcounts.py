@@ -1,3 +1,7 @@
+"""
+Helper function to make scales with cumulated number counts up to some redshifts, from a catalog.
+"""
+
 import cosmicruler
 import astropy.table
 #import matplotlib.pyplot as plt
